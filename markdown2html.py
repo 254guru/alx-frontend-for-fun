@@ -1,10 +1,12 @@
 #!/usr/bin/python3
-'''
-A script that converts Markdown to HTML
-'''
+
+"""
+Markdown script using python.
+"""
 import sys
-import os
+import os.path
 import re
+import hashlib
 
 def convert_markdown_to_html(input_file, output_file):
     # Checks that the markdown file exists and is a file
@@ -12,80 +14,68 @@ def convert_markdown_to_html(input_file, output_file):
         print(f'Missing {input_file}', file=sys.stderr)
         sys.exit(1)
 
-    with open(input_file, encoding='utf-8') as file_1:
-        html_content = []
-        in_unordered_list = False
-        in_ordered_list = False
-        in_paragraph = False
-        for line in file_1:
-            # Handle bold syntax
-            line = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', line)
-            # Check for list items
-            if line.startswith('- '):
-                # Close ordered list if necessary
-                if in_ordered_list:
-                    html_content.append('</ol>\n')
-                    in_ordered_list = False
-                # Open unordered list if not already open
-                if not in_unordered_list:
-                    html_content.append('<ul>\n')
-                    in_unordered_list = True
-                # Close paragraph if necessary
-                if in_paragraph:
-                    html_content.append('</p>\n')
-                    in_paragraph = False
-                html_content.append(f'<li>{line[2:].strip()}</li>\n')
-            elif line.startswith('* '):
-                # Close unordered list if necessary
-                if in_unordered_list:
-                    html_content.append('</ul>\n')
-                    in_unordered_list = False
-                # Open ordered list if not already open
-                if not in_ordered_list:
-                    html_content.append('<ol>\n')
-                    in_ordered_list = True
-                # Close paragraph if necessary
-                if in_paragraph:
-                    html_content.append('</p>\n')
-                    in_paragraph = False
-                html_content.append(f'<li>{line[2:].strip()}</li>\n')
-            else:
-                # Close list if necessary
-                if in_unordered_list:
-                    html_content.append('</ul>\n')
-                    in_unordered_list = False
-                elif in_ordered_list:
-                    html_content.append('</ol>\n')
-                    in_ordered_list = False
-                # Check for heading
-                heading_match = re.match(r'(#{1,6}) (.*)', line)
-                if heading_match:
-                    h_level = len(heading_match.group(1))
-                    html_content.append(f'<h{h_level}>{heading_match.group(2).strip()}</h{h_level}>\n')
-                else:
-                    # Check for paragraph
-                    if not in_paragraph and line.strip():
-                        html_content.append('<p>\n')
-                        in_paragraph = True
-                    elif in_paragraph and not line.strip():
-                        html_content.append('</p>\n')
-                        in_paragraph = False
-                    html_content.append(line)
-        
-        # Close any open tags
-        if in_unordered_list:
-            html_content.append('</ul>\n')
-        elif in_ordered_list:
-            html_content.append('</ol>\n')
-        elif in_paragraph:
-            html_content.append('</p>\n')
+    with open(input_file, encoding='utf-8') as read:
+        with open(output_file, 'w', encoding='utf-8') as html:
+            unordered_start, ordered_start, paragraph = False, False, False
+            # bold syntax and paragraph
+            for line in read:
+                # Handle bold syntax
+                line = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', line)
+                line = re.sub(r'__(.*?)__', r'<em>\1</em>', line)
+                
+                # Handle paragraph syntax
+                if line.strip():
+                    if not paragraph:
+                        html.write('<p>\n')
+                        paragraph = True
+                    html.write(line)
+                elif paragraph:
+                    html.write('</p>\n')
+                    paragraph = False
 
-    with open(output_file, 'w', encoding='utf-8') as file_2:
-        file_2.writelines(html_content)
+                # md5
+                md5 = re.findall(r'\[\[(.+?)\]\]', line)
+                if md5:
+                    for match in md5:
+                        line = line.replace(f'[[{match}]]', hashlib.md5(match.encode()).hexdigest())
+
+                # remove the letter C
+                remove_c = re.findall(r'\(\((.+?)\)\)', line)
+                if remove_c:
+                    for match in remove_c:
+                        line = line.replace(f'(({match}))', ''.join(c for c in match if c.lower() != 'c'))
+
+                # Check for list syntax
+                if line.startswith('- '):
+                    if ordered_start:
+                        html.write('</ol>\n')
+                        ordered_start = False
+                    if not unordered_start:
+                        html.write('<ul>\n')
+                        unordered_start = True
+                    html.write(f'<li>{line[2:].strip()}</li>\n')
+                elif line.startswith('* '):
+                    if unordered_start:
+                        html.write('</ul>\n')
+                        unordered_start = False
+                    if not ordered_start:
+                        html.write('<ol>\n')
+                        ordered_start = True
+                    html.write(f'<li>{line[2:].strip()}</li>\n')
+                elif line.startswith('#'):
+                    html.write(f'<h1>{line.strip("#").strip()}</h1>\n')
+
+            # Close any open tags
+            if unordered_start:
+                html.write('</ul>\n')
+            elif ordered_start:
+                html.write('</ol>\n')
+            elif paragraph:
+                html.write('</p>\n')
 
 if __name__ == '__main__':
     # Test that the number of arguments passed is 2
-    if len(sys.argv[1:]) != 2:
+    if len(sys.argv) < 3:
         print('Usage: ./markdown2html.py README.md README.html',
               file=sys.stderr)
         sys.exit(1)
