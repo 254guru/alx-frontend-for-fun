@@ -1,52 +1,43 @@
 #!/usr/bin/python3
+'''
+A script that codes markdown to HTML
+'''
 import sys
 import os
-import markdown
+import re
 
+if __name__ == '__main__':
 
-def convert_markdown_to_html(markdown_file, output_file):
-    if not os.path.exists(markdown_file):
-        print(f"Missing {markdown_file}", file=sys.stderr)
+    # Test that the number of arguments passed is 2
+    if len(sys.argv[1:]) != 2:
+        print('Usage: ./markdown2html.py README.md README.html',
+              file=sys.stderr)
         sys.exit(1)
 
-    with open(markdown_file, 'r') as f:
-        markdown_content = f.read()
+    # Store the arguments into variables
+    input_file = sys.argv[1]
+    output_file = sys.argv[2]
 
-    # Convert Markdown to HTML
-    html_content = markdown.markdown(markdown_content)
+    # Checks that the markdown file exists and is a file
+    if not (os.path.exists(input_file) and os.path.isfile(input_file)):
+        print(f'Missing {input_file}', file=sys.stderr)
+        sys.exit(1)
 
-    # Parse headings and replace with HTML equivalent
-    html_content = parse_headings(html_content)
-    # Parse unordered lists and replace with HTML equivalent
-    html_content = parse_unordered_lists(html_content)
+    with open(input_file, encoding='utf-8') as file_1:
+        html_content = []
+        md_content = [line[:-1] for line in file_1.readlines()]
+        for line in md_content:
+            heading = re.split(r'#{1,6} ', line)
+            if len(heading) > 1:
+                # Compute the number of the # present to
+                # determine heading level
+                h_level = len(line[:line.find(heading[1])-1])
+                # Append the html equivalent of the heading
+                html_content.append(
+                    f'<h{h_level}>{heading[1]}</h{h_level}>\n'
+                )
+            else:
+                html_content.append(line)
 
-    with open(output_file, 'w') as f:
-        f.write(html_content)
-
-
-def parse_headings(html_content):
-    # Define the heading levels and their HTML equivalents
-    heading_tags = {
-        '# ': '<h1>',
-        '## ': '<h2>',
-        '### ': '<h3>',
-        '#### ': '<h4>',
-        '##### ': '<h5>',
-        '###### ': '<h6>'
-    }
-
-    # Replace Markdown headings with HTML headings
-    for markdown_heading, html_heading in heading_tags.items():
-        html_content = html_content.replace(
-                markdown_heading, html_heading).replace('\n', '') + '</h1>'
-
-    return html_content
-
-
-def parse_unordered_lists(html_content):
-    # Replace Markdown unordered lists with HTML unordered lists
-    html_content = html_content.replace('\n<ul>', '<ul>').replace(
-            '<ul>', '\n<ul>\n').replace('</ul>', '\n</ul>\n')
-    html_content = html_content.replace('<li>', '\n\t<li>').replace(
-            '</li>', '</li>\n')
-    return html_content
+    with open(output_file, 'w', encoding='utf-8') as file_2:
+        file_2.writelines(html_content)
