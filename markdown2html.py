@@ -15,48 +15,20 @@ def convert_markdown_to_html(input_file, output_file):
 
     with open(input_file, encoding='utf-8') as file_1:
         html_content = []
-        in_unordered_list = False
-        in_ordered_list = False
+        in_paragraph = False
         for line in file_1:
-            if line.startswith('- '):
-                if not in_unordered_list:
-                    if in_ordered_list:
-                        html_content.append('</ol>\n')
-                        in_ordered_list = False
-                    html_content.append('<ul>\n')
-                    in_unordered_list = True
-                html_content.append(f'<li>{line[2:]}</li>\n')
-            elif line.startswith('* '):
-                if not in_ordered_list:
-                    if in_unordered_list:
-                        html_content.append('</ul>\n')
-                        in_unordered_list = False
-                    html_content.append('<ol>\n')
-                    in_ordered_list = True
-                html_content.append(f'<li>{line[2:]}</li>\n')
+            if line.strip() == '':
+                if in_paragraph:
+                    html_content.append('</p>\n')
+                    in_paragraph = False
             else:
-                if in_unordered_list:
-                    html_content.append('</ul>\n')
-                    in_unordered_list = False
-                if in_ordered_list:
-                    html_content.append('</ol>\n')
-                    in_ordered_list = False
-                heading = re.split(r'#{1,6} ', line)
-                if len(heading) > 1:
-                    # Compute the number of the # present to
-                    # determine heading level
-                    h_level = len(line[:line.find(heading[1])-1])
-                    # Append the html equivalent of the heading
-                    html_content.append(
-                        f'<h{h_level}>{heading[1]}</h{h_level}>\n'
-                    )
-                else:
-                    html_content.append(line)
+                if not in_paragraph:
+                    html_content.append('<p>\n')
+                    in_paragraph = True
+                html_content.append(f'{line.strip()}<br/>\n')
 
-        if in_unordered_list:
-            html_content.append('</ul>\n')
-        elif in_ordered_list:
-            html_content.append('</ol>\n')
+        if in_paragraph:
+            html_content.append('</p>\n')
 
     with open(output_file, 'w', encoding='utf-8') as file_2:
         file_2.writelines(html_content)
