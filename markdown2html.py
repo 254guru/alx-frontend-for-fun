@@ -5,9 +5,6 @@ import markdown
 
 
 def convert_markdown_to_html(markdown_file, output_file):
-    """
-    convert to makdown to html format
-    """
     if not os.path.exists(markdown_file):
         print(f"Missing {markdown_file}", file=sys.stderr)
         sys.exit(1)
@@ -20,6 +17,8 @@ def convert_markdown_to_html(markdown_file, output_file):
 
     # Parse headings and replace with HTML equivalent
     html_content = parse_headings(html_content)
+    # Parse unordered lists and replace with HTML equivalent
+    html_content = parse_unordered_lists(html_content)
 
     with open(output_file, 'w') as f:
         f.write(html_content)
@@ -44,15 +43,10 @@ def parse_headings(html_content):
     return html_content
 
 
-if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Usage: ./markdown2html.py <markdown_file> <output_file>",
-              file=sys.stderr)
-        sys.exit(1)
-
-    markdown_file = sys.argv[1]
-    output_file = sys.argv[2]
-
-    convert_markdown_to_html(markdown_file, output_file)
-
-    sys.exit(0)
+def parse_unordered_lists(html_content):
+    # Replace Markdown unordered lists with HTML unordered lists
+    html_content = html_content.replace('\n<ul>', '<ul>').replace(
+            '<ul>', '\n<ul>\n').replace('</ul>', '\n</ul>\n')
+    html_content = html_content.replace('<li>', '\n\t<li>').replace(
+            '</li>', '</li>\n')
+    return html_content
