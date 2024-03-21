@@ -8,6 +8,7 @@ import os.path
 import re
 import hashlib
 
+
 def convert_markdown_to_html(input_file, output_file):
     # Checks that the markdown file exists and is a file
     if not (os.path.exists(input_file) and os.path.isfile(input_file)):
@@ -22,7 +23,7 @@ def convert_markdown_to_html(input_file, output_file):
                 # Handle bold syntax
                 line = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', line)
                 line = re.sub(r'__(.*?)__', r'<em>\1</em>', line)
-                
+
                 # Handle paragraph syntax
                 if line.strip():
                     if not paragraph:
@@ -37,13 +38,15 @@ def convert_markdown_to_html(input_file, output_file):
                 md5 = re.findall(r'\[\[(.+?)\]\]', line)
                 if md5:
                     for match in md5:
-                        line = line.replace(f'[[{match}]]', hashlib.md5(match.encode()).hexdigest())
+                        line = line.replace(f'[[{match}]]', hashlib.md5(
+                            match.encode()).hexdigest())
 
                 # remove the letter C
                 remove_c = re.findall(r'\(\((.+?)\)\)', line)
                 if remove_c:
                     for match in remove_c:
-                        line = line.replace(f'(({match}))', ''.join(c for c in match if c.lower() != 'c'))
+                        line = line.replace(f'(({match}))', ''.join(
+                            c for c in match if c.lower() != 'c'))
 
                 # Check for list syntax
                 if line.startswith('- '):
@@ -72,6 +75,7 @@ def convert_markdown_to_html(input_file, output_file):
                 html.write('</ol>\n')
             elif paragraph:
                 html.write('</p>\n')
+
 
 if __name__ == '__main__':
     # Test that the number of arguments passed is 2
